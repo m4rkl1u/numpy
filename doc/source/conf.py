@@ -39,7 +39,7 @@ source_suffix = '.rst'
 
 # General substitutions.
 project = 'NumPy'
-copyright = '2008-2018, The SciPy community'
+copyright = '2008-2019, The SciPy community'
 
 # The default replacements for |version| and |release|, also used in various
 # other places throughout the built documents.
@@ -320,6 +320,15 @@ def linkcode_resolve(domain, info):
             obj = getattr(obj, part)
         except Exception:
             return None
+
+    # strip decorators, which would resolve to the source of the decorator
+    # possibly an upstream bug in getsourcefile, bpo-1764286
+    try:
+        unwrap = inspect.unwrap
+    except AttributeError:
+        pass
+    else:
+        obj = unwrap(obj)
 
     try:
         fn = inspect.getsourcefile(obj)

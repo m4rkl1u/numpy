@@ -133,16 +133,8 @@ else:
     from .version import git_revision as __git_revision__
     from .version import version as __version__
 
-    from ._import_tools import PackageLoader
-
-    def pkgload(*packages, **options):
-        loader = PackageLoader(infunc=True)
-        return loader(*packages, **options)
-
     __all__ = ['ModuleDeprecationWarning',
                'VisibleDeprecationWarning']
-
-    pkgload.__doc__ = PackageLoader.__call__.__doc__
 
     # Allow distributors to run custom init code
     from . import _distributor_init
@@ -171,13 +163,19 @@ else:
         from __builtin__ import bool, int, float, complex, object, unicode, str
 
     from .core import round, abs, max, min
+    # now that numpy modules are imported, can initialize limits
+    core.getlimits._register_known_types()
 
-    __all__.extend(['__version__', 'pkgload', 'PackageLoader',
-               'show_config'])
+    __all__.extend(['__version__', 'show_config'])
     __all__.extend(core.__all__)
     __all__.extend(_mat.__all__)
     __all__.extend(lib.__all__)
     __all__.extend(['linalg', 'fft', 'random', 'ctypeslib', 'ma'])
+
+    # Filter out Cython harmless warnings
+    warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+    warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+    warnings.filterwarnings("ignore", message="numpy.ndarray size changed")
 
     # oldnumeric and numarray were removed in 1.9. In case some packages import
     # but do not use them, we define them here for backward compatibility.

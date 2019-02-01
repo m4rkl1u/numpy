@@ -16,6 +16,7 @@
 
 #include "conversion_utils.h"
 #include "alloc.h"
+#include "buffer.h"
 
 static int
 PyArray_PyIntAsInt_ErrMsg(PyObject *o, const char * msg) NPY_GCC_NONNULL(2);
@@ -185,6 +186,7 @@ PyArray_BufferConverter(PyObject *obj, PyArray_Chunk *buf)
      * sticks around after the release.
      */
     PyBuffer_Release(&view);
+    _dealloc_cached_buffer_info(obj);
 
     /* Point to the base of the buffer object if present */
     if (PyMemoryView_Check(obj)) {
@@ -419,9 +421,14 @@ PyArray_SortkindConverter(PyObject *obj, NPY_SORTKIND *sortkind)
     else if (str[0] == 'm' || str[0] == 'M') {
         *sortkind = NPY_MERGESORT;
     }
+    else if (str[0] == 't' || str[0] == 'T'){
+        *sortkind = NPY_TIMSORT;
+    }
     else if (str[0] == 's' || str[0] == 'S') {
-        /* mergesort is the only stable sorting method in numpy */
-        *sortkind = NPY_MERGESORT;
+        /* available options: mergesort and timsort
+         * among which timsort is assumed to be better
+         */
+        *sortkind = NPY_TIMSORT;
     }
     else {
         PyErr_Format(PyExc_ValueError,

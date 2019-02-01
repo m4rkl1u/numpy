@@ -1,3 +1,5 @@
+# cython: language_level=3
+
 # mtrand.pyx -- A Pyrex wrapper of Jean-Sebastien Roy's RandomKit
 #
 # Copyright 2005 Robert Kern (robert.kern@gmail.com)
@@ -844,16 +846,16 @@ cdef class RandomState:
         Examples
         --------
         >>> np.random.random_sample()
-        0.47108547995356098
+        0.47108547995356098 # random
         >>> type(np.random.random_sample())
-        <type 'float'>
+        <class 'float'>
         >>> np.random.random_sample((5,))
-        array([ 0.30220482,  0.86820401,  0.1654503 ,  0.11659149,  0.54323428])
+        array([ 0.30220482,  0.86820401,  0.1654503 ,  0.11659149,  0.54323428]) # random
 
         Three-by-two array of random numbers from [-5, 0):
 
         >>> 5 * np.random.random_sample((3, 2)) - 5
-        array([[-3.99149989, -0.52338984],
+        array([[-3.99149989, -0.52338984], # random
                [-2.99091858, -0.79479508],
                [-1.23204345, -1.75224494]])
 
@@ -954,14 +956,14 @@ cdef class RandomState:
         Examples
         --------
         >>> np.random.randint(2, size=10)
-        array([1, 0, 0, 0, 1, 1, 0, 0, 1, 0])
+        array([1, 0, 0, 0, 1, 1, 0, 0, 1, 0]) # random
         >>> np.random.randint(1, size=10)
         array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
         Generate a 2 x 4 array of ints between 0 and 4, inclusive:
 
         >>> np.random.randint(5, size=(2, 4))
-        array([[4, 0, 2, 1],
+        array([[4, 0, 2, 1], # random
                [3, 2, 2, 0]])
 
         """
@@ -1076,34 +1078,34 @@ cdef class RandomState:
         Generate a uniform random sample from np.arange(5) of size 3:
 
         >>> np.random.choice(5, 3)
-        array([0, 3, 4])
+        array([0, 3, 4]) # random
         >>> #This is equivalent to np.random.randint(0,5,3)
 
         Generate a non-uniform random sample from np.arange(5) of size 3:
 
         >>> np.random.choice(5, 3, p=[0.1, 0, 0.3, 0.6, 0])
-        array([3, 3, 0])
+        array([3, 3, 0]) # random
 
         Generate a uniform random sample from np.arange(5) of size 3 without
         replacement:
 
         >>> np.random.choice(5, 3, replace=False)
-        array([3,1,0])
+        array([3,1,0]) # random
         >>> #This is equivalent to np.random.permutation(np.arange(5))[:3]
 
         Generate a non-uniform random sample from np.arange(5) of size
         3 without replacement:
 
         >>> np.random.choice(5, 3, replace=False, p=[0.1, 0, 0.3, 0.6, 0])
-        array([2, 3, 0])
+        array([2, 3, 0]) # random
 
         Any of the above can be repeated with an arbitrary array-like
         instead of just integers. For instance:
 
         >>> aa_milne_arr = ['pooh', 'rabbit', 'piglet', 'Christopher']
         >>> np.random.choice(aa_milne_arr, 5, p=[0.5, 0.1, 0.1, 0.3])
-        array(['pooh', 'pooh', 'pooh', 'Christopher', 'piglet'],
-              dtype='|S11')
+        array(['pooh', 'pooh', 'pooh', 'Christopher', 'piglet'], # random
+              dtype='<U11')
 
         """
 
@@ -1139,9 +1141,12 @@ cdef class RandomState:
                 raise ValueError("'p' must be 1-dimensional")
             if p.size != pop_size:
                 raise ValueError("'a' and 'p' must have same size")
+            p_sum = kahan_sum(pix, d)
+            if np.isnan(p_sum):
+                raise ValueError("probabilities contain NaN")
             if np.logical_or.reduce(p < 0):
                 raise ValueError("probabilities are not non-negative")
-            if abs(kahan_sum(pix, d) - 1.) > atol:
+            if abs(p_sum - 1.) > atol:
                 raise ValueError("probabilities do not sum to 1")
 
         shape = size
@@ -1470,11 +1475,11 @@ cdef class RandomState:
         Examples
         --------
         >>> np.random.random_integers(5)
-        4
+        4 # random
         >>> type(np.random.random_integers(5))
-        <type 'int'>
+        <class 'numpy.int64'>
         >>> np.random.random_integers(5, size=(3,2))
-        array([[5, 4],
+        array([[5, 4], # random
                [3, 3],
                [4, 5]])
 
@@ -1483,7 +1488,7 @@ cdef class RandomState:
         :math:`{0, 5/8, 10/8, 15/8, 20/8}`):
 
         >>> 2.5 * (np.random.random_integers(5, size=(5,)) - 1) / 4.
-        array([ 0.625,  1.25 ,  0.625,  0.625,  2.5  ])
+        array([ 0.625,  1.25 ,  0.625,  0.625,  2.5  ]) # random
 
         Roll two six sided dice 1000 times and sum the results:
 
@@ -1679,9 +1684,9 @@ cdef class RandomState:
         Parameters
         ----------
         a : float or array_like of floats
-            Alpha, non-negative.
+            Alpha, positive (>0).
         b : float or array_like of floats
-            Beta, non-negative.
+            Beta, positive (>0).
         size : int or tuple of ints, optional
             Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
             ``m * n * k`` samples are drawn.  If size is ``None`` (default),
@@ -2068,8 +2073,8 @@ cdef class RandomState:
 
         The lower bound for the top 1% of the samples is :
 
-        >>> sort(s)[-10]
-        7.61988120985
+        >>> np.sort(s)[-10]
+        7.61988120985 # random
 
         So there is about a 1% chance that the F statistic will exceed 7.62,
         the measured value is 36, so the null hypothesis is rejected at the 1%
@@ -2166,6 +2171,7 @@ cdef class RandomState:
         >>> NF = np.histogram(nc_vals, bins=50, density=True)
         >>> c_vals = np.random.f(dfnum, dfden, 1000000)
         >>> F = np.histogram(c_vals, bins=50, density=True)
+        >>> import matplotlib.pyplot as plt
         >>> plt.plot(F[1][1:], F[0])
         >>> plt.plot(NF[1][1:], NF[0])
         >>> plt.show()
@@ -2261,7 +2267,7 @@ cdef class RandomState:
         Examples
         --------
         >>> np.random.chisquare(2,4)
-        array([ 1.89920014,  9.00867716,  3.13710533,  5.62318272])
+        array([ 1.89920014,  9.00867716,  3.13710533,  5.62318272]) # random
 
         """
         cdef ndarray odf
@@ -2443,6 +2449,7 @@ cdef class RandomState:
         --------
         Draw samples and plot the distribution:
 
+        >>> import matplotlib.pyplot as plt
         >>> s = np.random.standard_cauchy(1000000)
         >>> s = s[(s>-25) & (s<25)]  # truncate distribution so it plots well
         >>> plt.hist(s, bins=100)
@@ -2505,7 +2512,7 @@ cdef class RandomState:
         Examples
         --------
         From Dalgaard page 83 [1]_, suppose the daily energy intake for 11
-        women in Kj is:
+        women in kilojoules (kJ) is:
 
         >>> intake = np.array([5260., 5470, 5640, 6180, 6390, 6515, 6805, 7515, \\
         ...                    7515, 8230, 8770])
@@ -2785,7 +2792,7 @@ cdef class RandomState:
         Parameters
         ----------
         a : float or array_like of floats
-            Shape of the distribution. Should be greater than zero.
+            Shape parameter of the distribution.  Must be nonnegative.
         size : int or tuple of ints, optional
             Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
             ``m * n * k`` samples are drawn.  If size is ``None`` (default),
@@ -3279,12 +3286,13 @@ cdef class RandomState:
 
         >>> loc, scale = 10, 1
         >>> s = np.random.logistic(loc, scale, 10000)
+        >>> import matplotlib.pyplot as plt
         >>> count, bins, ignored = plt.hist(s, bins=50)
 
         #   plot against distribution
 
         >>> def logist(x, loc, scale):
-        ...     return exp((loc-x)/scale)/(scale*(1+exp((loc-x)/scale))**2)
+        ...     return np.exp((loc-x)/scale)/(scale*(1+np.exp((loc-x)/scale))**2)
         >>> plt.plot(bins, logist(bins, loc, scale)*count.max()/\\
         ... logist(bins, loc, scale).max())
         >>> plt.show()
@@ -3479,6 +3487,7 @@ cdef class RandomState:
         --------
         Draw values from the distribution and plot the histogram
 
+        >>> from matplotlib.pyplot import hist
         >>> values = hist(np.random.rayleigh(3, 100000), bins=200, density=True)
 
         Wave heights tend to follow a Rayleigh distribution. If the mean wave
@@ -3492,7 +3501,7 @@ cdef class RandomState:
         The percentage of waves larger than 3 meters is:
 
         >>> 100.*sum(s>3)/1000000.
-        0.087300000000000003
+        0.087300000000000003 # random
 
         """
         cdef ndarray oscale
@@ -3873,9 +3882,9 @@ cdef class RandomState:
         single success after drilling 5 wells, after 6 wells, etc.?
 
         >>> s = np.random.negative_binomial(1, 0.1, 100000)
-        >>> for i in range(1, 11):
+        >>> for i in range(1, 11): # doctest: +SKIP
         ...    probability = sum(s<i) / 100000.
-        ...    print i, "wells drilled, probability of one success =", probability
+        ...    print(i, "wells drilled, probability of one success =", probability)
 
         """
         cdef ndarray on
@@ -4143,15 +4152,15 @@ cdef class RandomState:
         if op.shape == ():
             fp = PyFloat_AsDouble(p)
 
-            if fp < 0.0:
-                raise ValueError("p < 0.0")
+            if fp <= 0.0:
+                raise ValueError("p <= 0.0")
             if fp > 1.0:
                 raise ValueError("p > 1.0")
             return discd_array_sc(self.internal_state, rk_geometric, size, fp,
                                   self.lock)
 
-        if np.any(np.less(op, 0.0)):
-            raise ValueError("p < 0.0")
+        if np.any(np.less_equal(op, 0.0)):
+            raise ValueError("p <= 0.0")
         if np.any(np.greater(op, 1.0)):
             raise ValueError("p > 1.0")
         return discd_array(self.internal_state, rk_geometric, size, op,
@@ -4198,12 +4207,12 @@ cdef class RandomState:
         -----
         The probability density for the Hypergeometric distribution is
 
-        .. math:: P(x) = \\frac{\\binom{m}{n}\\binom{N-m}{n-x}}{\\binom{N}{n}},
+        .. math:: P(x) = \\frac{\\binom{g}{x}\\binom{b}{n-x}}{\\binom{g+b}{n}},
 
-        where :math:`0 \\le x \\le m` and :math:`n+m-N \\le x \\le n`
+        where :math:`0 \\le x \\le n` and :math:`n-b \\le x \\le g`
 
-        for P(x) the probability of x successes, n = ngood, m = nbad, and
-        N = number of samples.
+        for P(x) the probability of x successes, g = ngood, b = nbad, and
+        n = number of samples.
 
         Consider an urn with black and white marbles in it, ngood of them
         black and nbad are white. If you draw nsample balls without
@@ -4233,6 +4242,7 @@ cdef class RandomState:
         >>> ngood, nbad, nsamp = 100, 2, 10
         # number of good, number of bad, and number of samples
         >>> s = np.random.hypergeometric(ngood, nbad, nsamp, 1000)
+        >>> from matplotlib.pyplot import hist
         >>> hist(s)
         #   note that it is very unlikely to grab both bad items
 
@@ -4342,14 +4352,15 @@ cdef class RandomState:
 
         >>> a = .6
         >>> s = np.random.logseries(a, 10000)
+        >>> import matplotlib.pyplot as plt
         >>> count, bins, ignored = plt.hist(s)
 
         #   plot against distribution
 
         >>> def logseries(k, p):
-        ...     return -p**k/(k*log(1-p))
+        ...     return -p**k/(k*np.log(1-p))
         >>> plt.plot(bins, logseries(bins, a)*count.max()/
-                     logseries(bins, a).max(), 'r')
+        ...          logseries(bins, a).max(), 'r')
         >>> plt.show()
 
         """
@@ -4474,7 +4485,7 @@ cdef class RandomState:
         standard deviation:
 
         >>> list((x[0,0,:] - mean) < 0.6)
-        [True, True]
+        [True, True] # random
 
         """
         from numpy.dual import svd
@@ -4580,14 +4591,14 @@ cdef class RandomState:
         Throw a dice 20 times:
 
         >>> np.random.multinomial(20, [1/6.]*6, size=1)
-        array([[4, 1, 7, 5, 2, 1]])
+        array([[4, 1, 7, 5, 2, 1]]) # random
 
         It landed 4 times on 1, once on 2, etc.
 
         Now, throw the dice 20 times, and 20 times again:
 
         >>> np.random.multinomial(20, [1/6.]*6, size=2)
-        array([[3, 4, 3, 3, 4, 3],
+        array([[3, 4, 3, 3, 4, 3], # random
                [2, 4, 3, 4, 0, 7]])
 
         For the first run, we threw 3 times 1, 4 times 2, etc.  For the second,
@@ -4596,7 +4607,7 @@ cdef class RandomState:
         A loaded die is more likely to land on number 6:
 
         >>> np.random.multinomial(100, [1/7.]*5 + [2/7.])
-        array([11, 16, 14, 17, 16, 26])
+        array([11, 16, 14, 17, 16, 26]) # random
 
         The probability inputs should be normalized. As an implementation
         detail, the value of the last entry is ignored and assumed to take
@@ -4605,7 +4616,7 @@ cdef class RandomState:
         other should be sampled like so:
 
         >>> np.random.multinomial(100, [1.0 / 3, 2.0 / 3])  # RIGHT
-        array([38, 62])
+        array([38, 62]) # random
 
         not like:
 
@@ -4659,8 +4670,9 @@ cdef class RandomState:
 
         Draw `size` samples of dimension k from a Dirichlet distribution. A
         Dirichlet-distributed random variable can be seen as a multivariate
-        generalization of a Beta distribution. Dirichlet pdf is the conjugate
-        prior of a multinomial in Bayesian inference.
+        generalization of a Beta distribution. The Dirichlet distribution
+        is a conjugate prior of a multinomial distribution in Bayesian 
+        inference.
 
         Parameters
         ----------
@@ -4684,13 +4696,24 @@ cdef class RandomState:
 
         Notes
         -----
-        .. math:: X \\approx \\prod_{i=1}^{k}{x^{\\alpha_i-1}_i}
 
-        Uses the following property for computation: for each dimension,
-        draw a random sample y_i from a standard gamma generator of shape
-        `alpha_i`, then
-        :math:`X = \\frac{1}{\\sum_{i=1}^k{y_i}} (y_1, \\ldots, y_n)` is
-        Dirichlet distributed.
+        The Dirichlet distribution is a distribution over vectors 
+        :math:`x` that fulfil the conditions :math:`x_i>0` and 
+        :math:`\\sum_{i=1}^k x_i = 1`.
+
+        The probability density function :math:`p` of a 
+        Dirichlet-distributed random vector :math:`X` is 
+        proportional to
+
+        .. math:: p(x) \\propto \\prod_{i=1}^{k}{x^{\\alpha_i-1}_i},
+
+        where :math:`\\alpha` is a vector containing the positive 
+        concentration parameters.
+
+        The method uses the following property for computation: let :math:`Y`
+        be a random vector which has components that follow a standard gamma 
+        distribution, then :math:`X = \\frac{1}{\\sum_{i=1}^k{Y_i}} Y` 
+        is Dirichlet-distributed
 
         References
         ----------
@@ -4710,6 +4733,7 @@ cdef class RandomState:
 
         >>> s = np.random.dirichlet((10, 5, 3), 20).transpose()
 
+        >>> import matplotlib.pyplot as plt
         >>> plt.barh(range(20), s[0])
         >>> plt.barh(range(20), s[1], left=s[0], color='g')
         >>> plt.barh(range(20), s[2], left=s[0]+s[1], color='r')
@@ -4798,14 +4822,14 @@ cdef class RandomState:
         >>> arr = np.arange(10)
         >>> np.random.shuffle(arr)
         >>> arr
-        [1 7 5 2 9 4 3 6 0 8]
+        [1 7 5 2 9 4 3 6 0 8] # random
 
         Multi-dimensional arrays are only shuffled along the first axis:
 
         >>> arr = np.arange(9).reshape((3, 3))
         >>> np.random.shuffle(arr)
         >>> arr
-        array([[3, 4, 5],
+        array([[3, 4, 5], # random
                [6, 7, 8],
                [0, 1, 2]])
 
@@ -4836,9 +4860,8 @@ cdef class RandomState:
                     self._shuffle_raw(n, sizeof(npy_intp), stride, x_ptr, buf_ptr)
                 else:
                     self._shuffle_raw(n, itemsize, stride, x_ptr, buf_ptr)
-        elif isinstance(x, np.ndarray) and x.ndim > 1 and x.size:
-            # Multidimensional ndarrays require a bounce buffer.
-            buf = np.empty_like(x[0])
+        elif isinstance(x, np.ndarray) and x.ndim and x.size:
+            buf = np.empty_like(x[0,...])
             with self.lock:
                 for i in reversed(range(1, n)):
                     j = rk_interval(i, self.internal_state)
@@ -4886,14 +4909,14 @@ cdef class RandomState:
         Examples
         --------
         >>> np.random.permutation(10)
-        array([1, 7, 4, 3, 0, 9, 2, 5, 8, 6])
+        array([1, 7, 4, 3, 0, 9, 2, 5, 8, 6]) # random
 
         >>> np.random.permutation([1, 4, 9, 12, 15])
-        array([15,  1,  9,  4, 12])
+        array([15,  1,  9,  4, 12]) # random
 
         >>> arr = np.arange(9).reshape((3, 3))
         >>> np.random.permutation(arr)
-        array([[6, 7, 8],
+        array([[6, 7, 8], # random
                [0, 1, 2],
                [3, 4, 5]])
 
@@ -4907,8 +4930,8 @@ cdef class RandomState:
     
         # shuffle has fast-path for 1-d
         if arr.ndim == 1:
-            # must return a copy
-            if arr is x:
+            # Return a copy if same memory
+            if np.may_share_memory(arr, x):
                 arr = np.array(arr)
             self.shuffle(arr)
             return arr
